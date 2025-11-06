@@ -2,62 +2,132 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>شراء بالعُقد</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KING STORE — متجر الألعاب</title>
+<style>
+body {font-family: Arial, sans-serif; background:#f0f4ff; display:flex; justify-content:center; align-items:center; min-height:100vh;}
+.container {width:95%; max-width:600px; background:white; padding:24px; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+h1,h2,h3 {margin:12px 0;}
+h1 {text-align:center;}
+.card {padding:12px; border-radius:12px; background:#e6f0ff; margin:6px 0; cursor:pointer; border:1px solid #cfe0ff;}
+.card.selected {border:2px solid #007bff; background:#d0e4ff;}
+.btn {padding:10px 20px; background:#007bff; color:white; border:none; border-radius:12px; cursor:pointer; margin-top:12px;}
+input {padding:8px; border-radius:8px; border:1px solid #bcd7ff; width:100%; margin:4px 0;}
+#offersContainer {margin-top:16px;}
+#loginContainer, #storeContainer {display:none;}
+</style>
 </head>
 <body>
-<h2>رصيدك: <span id="balance">0</span> ج.س</h2>
-<div id="offers"></div>
+<div class="container">
 
+  <!-- Login -->
+  <div id="loginContainer">
+    <h1>تسجيل الدخول</h1>
+    <input type="text" id="username" placeholder="اسم المستخدم">
+    <input type="password" id="password" placeholder="كلمة المرور">
+    <button class="btn" onclick="login()">دخول</button>
+  </div>
+
+  <!-- Store -->
+  <div id="storeContainer">
+    <h1>مرحباً، <span id="userDisplay"></span></h1>
+    <h3>رصيدك: <span id="balanceDisplay">0</span> ج.س</h3>
+    <div id="offersContainer"></div>
+    <div style="text-align:center;">
+      <button class="btn" onclick="logout()">خروج</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
 <script>
-  // إعداد Supabase
-  const supabaseUrl = 'https://koarutyywmtdtjibqgfe.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJI...'; // ضع المفتاح الخاص بك هنا
-  const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+// تهيئة Supabase
+const supabaseUrl = 'https://koarutyywmtdtjibqgfe.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvYXJ1dHl5d210ZHRqaWJxZ2ZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0MTczNjcsImV4cCI6MjA3Nzk5MzM2N30.k5Byn6zlRVSbC1_YULdJGBq7vNJRA3AyWDRqkI5dDKI';
+const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-  let currentUser = { id: 1, balance: 10000 }; // مثال: مستخدم وهمي
+// العروض ثابتة في الكود
+const offersData = {
+  "PUBG": [
+    {amount:60, priceSDG:3500, currency:'شدة'},
+    {amount:120, priceSDG:7000, currency:'شدة'},
+    {amount:240, priceSDG:14000, currency:'شدة'}
+  ],
+  "Free Fire":[
+    {amount:100, priceSDG:3400, currency:'💎'},
+    {amount:210, priceSDG:6800, currency:'💎'},
+    {amount:530, priceSDG:17000, currency:'💎'}
+  ],
+  "عروض التيك توك":[
+    {amount:70, priceSDG:3500, currency:'🪙'},
+    {amount:100, priceSDG:5250, currency:'🪙'}
+  ]
+};
 
-  // مثال العروض
-  const offers = [
-    { id:1, game:'PUBG', amount:'60 شدّة', priceSDG:3500 },
-    { id:2, game:'Free Fire', amount:'100💎', priceSDG:3400 },
-  ];
+let currentUser = null;
 
-  // عرض العروض
-  const offersDiv = document.getElementById('offers');
-  offers.forEach(offer => {
-    const btn = document.createElement('button');
-    btn.textContent = `${offer.game} - ${offer.amount} - ${offer.priceSDG} ج.س`;
-    btn.onclick = () => buyOffer(offer);
-    offersDiv.appendChild(btn);
-  });
+// تسجيل الدخول
+async function login(){
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+  if(!username || !password){ alert('الرجاء إدخال جميع البيانات'); return; }
 
-  document.getElementById('balance').textContent = currentUser.balance;
+  let { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('username', username)
+    .eq('password', password)
+    .single();
 
-  // دالة الشراء
-  async function buyOffer(offer) {
-    if(currentUser.balance < offer.priceSDG){
-      alert('رصيدك غير كافٍ');
-      return;
-    }
+  if(error || !data){ alert('اسم المستخدم أو كلمة المرور خاطئة'); return; }
+  currentUser = data;
+  showStore();
+}
 
-    // خصم الرصيد محلياً
-    currentUser.balance -= offer.priceSDG;
-    document.getElementById('balance').textContent = currentUser.balance;
+// عرض المتجر
+function showStore(){
+  document.getElementById('loginContainer').style.display = 'none';
+  document.getElementById('storeContainer').style.display = 'block';
+  document.getElementById('userDisplay').textContent = currentUser.username;
+  document.getElementById('balanceDisplay').textContent = currentUser.balance;
 
-    // تحديث الرصيد في Supabase
-    const { data, error } = await supabase
-      .from('users')
-      .update({ balance: currentUser.balance })
-      .eq('id', currentUser.id);
-
-    if(error){
-      alert('حدث خطأ في التحديث');
-      return;
-    }
-
-    alert(`تم شراء ${offer.amount} بنجاح`);
+  const container = document.getElementById('offersContainer');
+  container.innerHTML = '<h3>اختر عرض الشحن</h3>';
+  for(const game in offersData){
+    offersData[game].forEach(offer=>{
+      const div = document.createElement('div');
+      div.className='card';
+      div.textContent=`${game} — ${offer.amount} ${offer.currency} — ${offer.priceSDG} ج.س`;
+      div.onclick = ()=> buyOffer(offer);
+      container.appendChild(div);
+    });
   }
+}
+
+// شراء العرض
+async function buyOffer(offer){
+  if(currentUser.balance < offer.priceSDG){ alert('رصيدك غير كافٍ'); return; }
+  const { data, error } = await supabase
+    .from('users')
+    .update({ balance: currentUser.balance - offer.priceSDG })
+    .eq('id', currentUser.id)
+    .select();
+  if(error){ alert('حدث خطأ'); return; }
+  currentUser.balance -= offer.priceSDG;
+  document.getElementById('balanceDisplay').textContent=currentUser.balance;
+  alert(`تم شراء: ${offer.amount} ${offer.currency}`);
+}
+
+// خروج
+function logout(){
+  currentUser=null;
+  document.getElementById('storeContainer').style.display='none';
+  document.getElementById('loginContainer').style.display='block';
+}
+
+// عرض تسجيل الدخول أولاً
+document.getElementById('loginContainer').style.display='block';
 </script>
 </body>
 </html>
