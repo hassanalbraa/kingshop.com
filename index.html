@@ -1,1 +1,268 @@
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024"> 
+<title>KING STORE — متجر شحن الألعاب</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+body {margin:0; font-family:'Poppins',sans-serif; color:#0b0f1a; background:linear-gradient(120deg,#eaf4ff,#cfe7ff); height:100vh; display:flex; justify-content:center; align-items:center; overflow:auto;}
+.container {width:90%; max-width:600px; text-align:center; background:white; padding:24px; border-radius:16px; box-shadow:0 4px 25px rgba(0,0,0,0.1);}
+h1,h2,h3 {margin:12px 0;}
+h1 {font-size:2.5rem; background:linear-gradient(90deg,#007bff,#00c3ff); -webkit-background-clip:text; color:transparent;}
+h2,h3 {font-size:1.6rem;color:#0b2b4a;}
+.step {display:none; flex-direction:column; gap:16px; animation:fadeIn .5s ease-in-out;}
+.step.active {display:flex;}
+.grid {display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.card {padding:16px; border-radius:12px; background:#f5f9ff; cursor:pointer; transition:all .2s; border:1px solid #dbe9ff;}
+.card:hover {transform:translateY(-6px);box-shadow:0 8px 18px rgba(0,0,0,0.1);}
+.card.selected {border:2px solid #00a0ff; background:#e6f4ff;}
+.btn {padding:12px 28px; background:linear-gradient(90deg,#007bff,#00c3ff); color:white; border:none; border-radius:12px; font-size:1rem; cursor:pointer; transition:transform .2s; display:inline-block;}
+.btn:hover {transform:scale(1.08);}
+#paymentInfoContainer {display:none; flex-direction:column; gap:12px; margin-top:12px; text-align:right; font-size:1.1rem;}
+.review-box {background:#f5f9ff; padding:16px; border-radius:12px; border:1px solid #dbe9ff; text-align:right;}
+input {padding:8px; border-radius:8px; border:1px solid #bcd7ff; width:100%; margin-top:4px;}
+label {font-size:1rem;}
+@keyframes fadeIn{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Step 1 -->
+  <div class="step active" id="step1">
+    <h1>KING STORE</h1>
+    <h3>اشحن - العب - استمتع</h3>
+    <div class="grid">
+  <div class="card" onclick="selectGame('PUBG', this)">PUBG</div>
+  <div class="card" onclick="selectGame('Free Fire', this)">Free Fire</div>
+</div>
+
+<div class="card" onclick="selectGame('عروض التجار  /  اكواد جارينا', this)" style="margin-top:12px;">
+  عروض التجار  /  اكواد جارينا
+</div>
+<div class="card" 
+     onclick="selectGame('عروض التيك توك', this)" 
+     style="position:relative; top:15px; left:10px;">
+  عروض التيك توك
+</div>
+    </div>
+    <div id="offersContainer" style="margin-top:16px; display:none; flex-direction:column; gap:12px;">
+      <h3>اختر عرض الشحن</h3>
+      <div id="offersList"></div>
+    </div>
+    <div style="display:flex; justify-content:end; margin-top:16px;">
+      <button class="btn" onclick="nextStep()">التالي</button>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step" id="step2">
+    <h2>اختر طريقة الدفع وأدخل الاي دي</h2>
+    <div class="grid">
+      <div class="card" onclick="selectPayment('بنكك', this)">بنكك</div>
+      <div class="card" onclick="selectPayment('ماي كاشي', this)">ماي كاشي</div>
+      <div class="card" onclick="selectPayment('فودافون', this)">فودافون</div>
+    </div>
+    <div id="paymentInfoContainer"></div>
+    <div style="margin-top:12px; text-align:right;">
+      <label for="customerID">أدخل الاي دي:</label>
+      <input type="text" id="customerID" placeholder="مثال: 123456">
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:16px;">
+      <button class="btn" onclick="prevStep()" id="backBtn" style="background:#3a4b63;">رجوع</button>
+      <button class="btn" onclick="nextStep()">التالي</button>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step" id="step3">
+    <h2>راجع معلوماتك قبل الإرسال</h2>
+    <div class="review-box">
+      <p id="showGame"></p>
+      <p id="showOffer"></p>
+      <p id="showPayment"></p>
+      <p id="showAccount"></p>
+      <p id="showCustomerID"></p>
+    </div>
+    <div style="display:flex; justify-content:space-between; margin-top:16px;">
+      <button class="btn" onclick="prevStep()" style="background:#3a4b63;">رجوع</button>
+      <button class="btn" onclick="sendWhatsApp()">تأكيد وإرسال</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let currentStep = 1;
+let selectedGame = '';
+let selectedOffer = {};
+let selectedPayment = '';
+
+let paymentTexts = {
+  "بنكك": {account:"رقم الحساب: 2442584 "},
+  "ماي كاشي": {account: "رقم الحساب : 401561057<br>الاسم : احمد عزالدين"},
+};
+
+// بيانات العروض
+let offersData = {
+  "PUBG": [
+    {amount:60, priceEGP:55, priceSDG:3500, currency:'شدة'},
+    {amount:120, priceEGP:115, priceSDG:7000, currency:'شدة'},
+    {amount:240, priceEGP:280, priceSDG:14000, currency:'شدة'}
+  ],
+  "Free Fire":[
+    {amount:100, priceEGP:55, priceSDG:3400, currency:'💎'},
+    {amount:210, priceEGP:110, priceSDG:6800, currency:'💎'},
+    {amount:530, priceEGP:270, priceSDG:17000, currency:'💎'},
+    {amount:1080, priceEGP:550, priceSDG:34000, currency:'💎'},
+    {amount:2200, priceEGP:1100, priceSDG:70000, currency:'💎'},
+    {amount:'عضوية أسبوعية', priceEGP:130, priceSDG:8000, currency:'💎'},
+    {amount:'عضوية شهرية', priceEGP:630, priceSDG:38500, currency:'💎'},
+      {amount:'باقة تصريح مستوى 6 (120💎) ', priceSDG: 2000, currency:''},
+      {amount:'باقة تصريح مستوى 10 (200💎) ', priceSDG:3200, currency:''}, 
+      {amount:'باقة تصريح مستوى 15 (200💎) ', priceSDG:3200, currency:''}, 
+      {amount:'باقة تصريح مستوى 20 (200💎) ', priceSDG:3200, currency:''}, 
+      {amount:'باقة تصريح مستوى 25 (200💎) ', priceSDG:3200, currency:''}, 
+      {amount:'باقة تصريح مستوى 30 (200💎) ', priceSDG:3200, currency:''}, 
+      {amount:'باقة تصريح مستوى 35 (350💎) ', priceSDG:4500, currency:''}
+  ], 
+  "عروض التجار  /  اكواد جارينا": [
+  {amount:'10$ جارينا', priceSDG:33700, currency:''},
+  {amount:'20$ جارينا', priceSDG:33600, currency:''}, 
+  {amount:'50$ جارينا', priceSDG:33300, currency:''}
+  
+  ], 
+  'عروض التيك توك' :[
+  {amount:'70', priceSDG:3500, currency:'🪙'}, 
+  {amount:'100', priceSDG:5250, currency:'🪙'},
+  {amount:'140', priceSDG:7000, currency:'🪙'},
+  {amount:'200', priceSDG:10500, currency:'🪙'},
+  {amount:'500', priceSDG:26000, currency:'🪙'},
+  {amount:'700', priceSDG:36000, currency:'🪙'},
+  ] 
+};
+
+// تحديد العروض التي تظهر بالسعر السوداني فقط
+let sudanOnlyOffers = {
+  "Free Fire": ['باقة تصريح مستوى 20 (200💎) ', 'باقة تصريح مستوى 15 (200💎) ', 'باقة تصريح مستوى 10 (200💎) ', 'باقة تصريح مستوى 6 (120💎) ', 'باقة تصريح مستوى 25 (200💎) ', 'باقة تصريح مستوى 30 (200💎) ', 'باقة تصريح مستوى 35 (350💎) ', '20$ جارينا', '10$ جارينا', '50$ جارينا'], // أكثر من عرض
+  "PUBG": [], 
+  "عروض التجار  /  اكواد جارينا":['10$ جارينا', '20$ جارينا', '50$ جارينا'],
+  "عروض التيك توك":['70','100','140','200','500','700'] 
+};
+
+function showStep(step){
+  for(let i=1;i<=3;i++){
+    document.getElementById('step'+i).classList.remove('active');
+  }
+  document.getElementById('step'+step).classList.add('active');
+}
+
+function selectGame(game, element){
+  selectedGame = game;
+  // إزالة التحديد من كل البطاقات
+  document.querySelectorAll('#step1 .card').forEach(c=>c.classList.remove('selected'));
+  element.classList.add('selected');
+
+  const container = document.getElementById('offersContainer');
+  const list = document.getElementById('offersList');
+  list.innerHTML = ''; // مسح المحتوى القديم
+
+  offersData[game].forEach((offer)=>{
+    const div = document.createElement('div');
+    div.className='card';
+
+    // لو العرض موجود في sudanOnlyOffers نظهره بالسعر السوداني فقط
+    if(sudanOnlyOffers[game] && sudanOnlyOffers[game].includes(offer.amount)){
+        div.innerHTML = `${offer.amount} ${offer.currency} — ${offer.priceSDG} ج.س`;
+    } else {
+        div.innerHTML = `${offer.amount} ${offer.currency} — ${offer.priceEGP} ج.م / ${offer.priceSDG} ج.س`;
+    }
+
+    // عند الضغط على العرض، تحديده
+    div.onclick = ()=>{
+        selectedOffer = offer;
+        document.querySelectorAll('#offersList .card').forEach(c=>c.classList.remove('selected'));
+        div.classList.add('selected');
+    };
+
+    // إضافة البطاقة للقائمة
+    list.appendChild(div);
+  });
+
+  container.style.display='flex'; // عرض الحاوية بعد الإضافة
+}
+
+function selectPayment(payment, element){
+  selectedPayment = payment;
+  document.querySelectorAll('#step2 .card').forEach(c=>c.classList.remove('selected'));
+  element.classList.add('selected');
+
+  const container = document.getElementById('paymentInfoContainer');
+  container.innerHTML = paymentTexts[payment]?.account || '';
+  container.style.display='block';
+}
+
+function nextStep(){
+  if(currentStep === 1){
+    if(!selectedGame){ alert('الرجاء اختيار اللعبة أولاً'); return; }
+    if(!selectedOffer.amount){ alert('الرجاء اختيار الباقة أولاً'); return; }
+  }
+
+  if(currentStep === 2){
+    if(!selectedPayment){ alert('الرجاء اختيار طريقة الدفع أولاً'); return; }
+    const customerID = document.getElementById('customerID').value.trim();
+    if(!customerID){ alert('الرجاء إدخال الاي دي'); return; }
+  }
+
+  if(currentStep < 3){
+    currentStep++;
+    showStep(currentStep);
+
+    if(currentStep===3){
+      const customerID = document.getElementById('customerID').value.trim();
+      document.getElementById('showGame').textContent = `اللعبة المختارة: ${selectedGame}`;
+      let price = selectedPayment==='فودافون'?selectedOffer.priceEGP:selectedOffer.priceSDG;
+      document.getElementById('showOffer').textContent = `العرض: ${selectedOffer.amount} ${selectedOffer.currency} — ${price} ${selectedPayment==='فودافون'?'ج.م':'ج.س'}`;
+      document.getElementById('showPayment').textContent = `طريقة الدفع: ${selectedPayment}`;
+      document.getElementById('showAccount').innerHTML = paymentTexts[selectedPayment]?.account || '';
+      document.getElementById('showCustomerID').textContent = `الايدي: ${customerID}`;
+    }
+  }
+}
+
+function prevStep(){
+  if(currentStep > 1){
+    currentStep--;
+    showStep(currentStep);
+  }
+}
+
+function sendWhatsApp(){
+  if(!selectedGame || !selectedOffer.amount || !selectedPayment){
+    alert('الرجاء استكمال كل البيانات قبل الإرسال');
+    return;
+  }
+  const customerID = document.getElementById('customerID').value.trim();
+  if(!customerID){ alert('الرجاء إدخال الاي دي'); return; }
+  let amount = selectedOffer.amount;
+  let currency = selectedOffer.currency;
+  let price = selectedPayment==='فودافون'?selectedOffer.priceEGP:selectedOffer.priceSDG;
+  let message = `اللعبة: ${selectedGame}%0Aالعرض: ${amount} ${currency} — ${price} ${selectedPayment==='فودافون'?'ج.م':'ج.س'}%0Aطريقة الدفع: ${selectedPayment}%0Aالايدي: ${customerID}`;
+  
+  let phone = '+249994488276';
+  let whatsappURL = `https://wa.me/${phone}?text=${message}`;
+  window.open(whatsappURL,'_blank');
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
